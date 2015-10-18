@@ -205,7 +205,7 @@ c_clayton<- function(x,y) {
   f<-function(u){ (u[1]^(-theta)+u[2]^(-theta)-1)^(1/theta)}
   return(apply(X,2,f))
 }
-#Attention! x et y ne peut pas prendre 0
+#Attention! x et y ne peuvent pas prendre 0
 
 c_clayton_z<-outer(x,y,c_clayton)
 persp(x,y,c_clayton_z,col="red")
@@ -255,7 +255,7 @@ V<-U*sqrt(u)/(1+U*sqrt(u)-sqrt(u))
 #(U,V)est un couple de uniform dont la fdr est c_clayton
 plot(qnorm(U),qnorm(V),main = 'Copule de Clayton',col='darkgreen')
 
-#On peut voir qu'ils se ressemble un peu.
+#On peut voir qu'ils se ressemblent un peu.
 
 
 
