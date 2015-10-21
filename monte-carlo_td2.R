@@ -202,7 +202,7 @@ surface3d(x, y, c_indep_z,col="red")
 theta=1
 c_clayton<- function(x,y) {
   X<-rbind(x,y)
-  f<-function(u){ (u[1]^(-theta)+u[2]^(-theta)-1)^(1/theta)}
+  f<-function(u){ (u[1]^(-theta)+u[2]^(-theta)-1)^(-1/theta)}
   return(apply(X,2,f))
 }
 #Attention! x et y ne peuvent pas prendre 0
