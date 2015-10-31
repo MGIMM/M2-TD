@@ -8,38 +8,52 @@ output: html_document
 
 
 #1.durée d'une simulation
+
 ##1.1
+
 ```{r}
 ech<--log(runif(1000,0,1))
 hist(ech,probability=T)
 curve(dexp(x,1),col="darkgreen",add=T)
 ```
+
 ##1.2
+
 ```{r}
 ech<-rexp(1000,1)
 hist(ech,probability=T)
 curve(dexp(x,1),col="darkgreen",add=T)
 ```
+
 ##1.3
+
 ```{r}
 t0=proc.time()
 a<-runif(10^6)
 proc.time()-t0
 ```
+
 ###comparation
+
 ```{r}
 t0=proc.time()
-ech<--log(runif(1000000,0,1))
+ech<--log(runif(10000,0,1))
 proc.time()-t0
 t0=proc.time()
-ech<-rexp(1000000,1)
+ech<-rexp(10000,1)
 proc.time()-t0
 ```
+
 #2.Lien géométrique/exponentielle
+
 ##2.1
+
 Soit Yn suit une loi de géométrique, {Yn=k} ={B1=0,...,Bk=0,Bk+1=1}.
+
 ##2.2
+
 On veut simuler Bn qui suit une loi de Bernoulli.
+
 ```{r}
 p<-1/3
 B1<-ceiling(runif(1)-(1-p))
@@ -52,11 +66,14 @@ while(B1==0){
 }
 print(count-1)
 ```
+
 count-1 suit une loi géométrique.
 Quand p est proche de 0, il prend bcp de fois avant réussir
 
 ##2.3
+
 Imx=N* ; P(x=k)=exp(-lambda*k)-exp(-lambda*(K+1))
+
 on fait p=1-exp(-lambda)
 ```{r}
 t0=proc.time()
@@ -72,6 +89,7 @@ ech<-rgeom(1000000,p)
 mean(ech)
 proc.time()-t0
 ```
+
 On peut voir que ce qu'on fait est plus vite que rgeom de R!
 Pourquoi? parceque le R regard rgeom comme un cas spéciale de loi NB.
 
@@ -80,8 +98,10 @@ Pourquoi? parceque le R regard rgeom comme un cas spéciale de loi NB.
 
 ##3.1
 ###simulation d'une loi de Laplace
+
 On va simule 100000 observations qui suit une loi normale.
 simuler une loi de bernoulli à valeur à {+1,-1}.
+
 simuler une loi de Laplace
 ```{r}
 m<-sqrt(2*exp(1)/pi)
@@ -101,10 +121,12 @@ hist(c,probability=T)
 curve(dnorm(x),add=T,col="red")
 lines(density(c),col="darkgreen")
 ```
+
 Ils coincident parfaitement.
 
 ##3.2
 ###la méthode de Box-Muller.
+
 ```{r}
 t0<-proc.time()
 n<-50000
@@ -116,9 +138,11 @@ curve(dnorm(x),add=T,col="red")
 lines(density(N2),col="darkgreen")
 proc.time()-t0
 ```
+
 Cette méthode est bcp plus vite que la méthode rejet que l'on a fait.
 
 ##3.3
+
 ```{r}
 n<-1000
 r<-sqrt(-2*log(runif(n)))
@@ -127,6 +151,7 @@ x1<-r*cos(theta)
 x2<-r*sin(theta)
 X<-rbind(x1,x2)
 ```
+
 X est une échantillon qui suit une loi normale std de dim 2.
 
 ```{r}
@@ -139,13 +164,16 @@ Y<-apply(X,2,f)
 plot(Y[1,],Y[2,],col="darkred",xlim=c(-2,5),ylim=c(-6,8),main="Représentation de Y",
      xlab="Y1",ylab="Y2")
 ```
+
 On voit bien une ellipsoid.
+
 ```{r}
 apply(Y,1,mean)
 cov(t(Y))
 ```
 
 ###Si on veut utiliser directement le package "MASS"
+
 ```{r}
 n=1000
 m=c(2,1)
@@ -160,32 +188,40 @@ plot(ech[,1],ech[,2],col="darkred",xlim=c(-2,5),ylim=c(-6,8),main="Représentati
 
 #4.Méfiez-vous des mélanges !
 ##4.1
+
 ```{r}
-f<- function (x) (1/(6*sqrt(2*pi)))*exp(-(x+3)^2/2)+(2/(3*sqrt(2*pi))*exp(-(x-3)^2/2))
+f<- function (x) (1/(6*sqrt(2*pi)))*exp(-(x+3)^2/8)+(2/(3*sqrt(2*pi))*exp(-(x-3)^2/2))
 plot(f,xlim = c(-10,10),main="Représentation de f")
 ```
 
 ##4.2&4.3
-on regard X comme une loi mélange de N(-3,4  ) et N(3,1)
+
+on regard X comme une loi mélange de N(-3,2) et N(3,1)
+
 ```{r}
 u<-runif(10000)
 X<-(u<1/3)*rnorm(10000,-3,2)+(u>1/3)*rnorm(10000,3,1)
 hist(X,probability = T)
 lines(density(X),col="blue")
 curve(f(x),add=T,col="red")
+legend("topleft",c("densité empirique","densité vraie"),col = c("blue","red"),lty = c(1,1))
 ```
-il ne coincide pas parfaitement !
+
+Il coincide parfaitement !
 
 
 #5.Représentation et simulation de copules.
 ##5.1
 ###Initiation
+
 ```{r}
 library(rgl)
 x<-seq(0.1,0.99,0.01)
 y<-x
 ```
+
 ###copule_min
+
 ```{r}
 c_min<- function(x,y) {
   X<-rbind(x,y)
@@ -195,7 +231,9 @@ c_min_z<-outer(x,y,c_min)
 #surface3d(x, y, c_min_z,col="red")
 persp(x,y,c_min_z,col="red")
 ```
+
 ###copule anti-comonotone
+
 ```{r}
 c_max<- function(x,y) {
   X<-rbind(x,y)
@@ -208,12 +246,15 @@ persp(x,y,c_max_z,col="red")
 ```
 
 ###copule indépendante
+
 ```{r}
 c_indep_z<-outer(x,y,"*")
 persp(x,y,c_indep_z,col="red")
 #surface3d(x, y, c_indep_z,col="red")
 ```
+
 ###copule de clayton(de paramètre 1)
+
 ```{r}
 theta=1
 c_clayton<- function(x,y) {
@@ -222,15 +263,19 @@ c_clayton<- function(x,y) {
   return(apply(X,2,f))
 }
 ```
+
 Attention! x et y ne peuvent pas prendre 0
+
 ```{r}
 c_clayton_z<-outer(x,y,c_clayton)
 persp(x,y,c_clayton_z,col="red")
 #surface3d(x, y, c_clayton_z,col="red")
 ```
+
 très joli!
 
 ###copule gaussien.
+
 ```{r}
 p=1/2
 library(mvtnorm)
@@ -254,6 +299,7 @@ persp(x,y,c_gaussien_z,col="red")
 ```
 
 ##5.2
+
 ```{r}
 library(MASS)
 p<-1/2
@@ -262,22 +308,26 @@ X=mvrnorm(1000,rep(0,2),gamma)
 u<-pnorm(X[,1])
 v<-pnorm(X[,2])
 ```
-(u,v)est une échantiollon dont la fonction de repartion égale à la copule gaussien de paramètre p.
-```{r}
 
-```
+(u,v)est une échantiollon dont la fonction de repartion égale à la copule gaussien de paramètre p.
+
 ```{r}
 U<-runif(1000)
 u<-runif(1000)
 V<-U*sqrt(u)/(1+U*sqrt(u)-sqrt(u))
 ```
+
 (U,V)est un couple de uniform dont la fdr est c_clayton.
+
 ```{r}
 par(mfrow=c(1,2))
 plot(X,main = "Copule Gaussien",col='darkblue')
 plot(qnorm(U),qnorm(V),main = 'Copule de Clayton',col='darkgreen')
+```
+```{r,echo= FALSE}
 par(mfrow=c(1,1))
 ```
+
 On peut voir qu'ils se ressemblent un peu.
 
 ##5.3
@@ -293,7 +343,9 @@ ech_exp2<--log(runif(n))
 ech_lap2<-ech_ber2*ech_exp2
 par(mfrow=c(1,2))
 ```
-###copule indépendant
+
+###copule indépendante & copule gaussienne
+
 ```{r}
 library(MASS)
 p<-1/2
@@ -302,7 +354,10 @@ X=mvrnorm(1000,rep(0,2),gamma)
 u<-pnorm(X[,1])
 v<-pnorm(X[,2])
 ```
-(u,v)est une échantiollon dont la fonction de repartion égale à la copule gaussien de paramètre p.
+
+(u,v)est une échantiollon dont la fonction de repartion égale à la copule gaussien de paramètre 
+p.
+
 ```{r}
 x<-rep(0,n)
 y<-rep(0,n)
@@ -321,12 +376,15 @@ for(i in 1:n){
 par(mfrow=c(1,2))
 plot(ech_lap1,ech_lap2,main = 'Copule Indépendante',col='darkblue')
 plot(x,y,main = 'Copule Gussienne',col='darkgreen')
+```
+```{r,echo=FALSE}
 par(mfrow=c(1,1))
 ```
 
 
 #6.Movement brownien, pont brownien.
 ##6.1
+
 ```{r}
 n<-10000
 t<-seq(1/n,1,1/n)
@@ -336,6 +394,7 @@ plot(t,W,type = 'l',col="darkred",main = 'Movement de Brownien')
 ```
 
 ##6.2
+
 ```{r}
 n<-10000
 u1<-rnorm(n,0,sqrt(1/n))
@@ -347,6 +406,7 @@ points(0,0,col="red")
 ```
 
 #6.3
+
 ```{r}
 n<-10000
 t<-seq(1/n,1,1/n)
@@ -358,6 +418,7 @@ plot(t,B,type = 'l',col="darkred",main = 'Pont de Brownien')
 ```
 
 #6.4(a)
+
 ```{r}
 n=10000
 U<-runif(n)
@@ -371,6 +432,7 @@ plot(x,apply(x,2,FB),type ='s')
 ```
 
 #6.4(b)
+
 ```{r}
 n<-100
 x=seq(1/n,1,by=1/n)
@@ -385,7 +447,9 @@ for (i in 1:1000){
   X_B<-append(X_B,max(apply(x,2,FB)))
 }
 ```
+
 On simule une échantillons de loi sup(Bt) de taille 1000
+
 ```{r}
 sup_B=c()
 for(i in 1:1000){
@@ -397,7 +461,9 @@ for(i in 1:1000){
   sup_B<-append(sup_B,max(B))
 }
 ```
+
 ###comparaison!
+
 ```{r}
 par(mfrow=c(1,2))
 hist(X_B,probability = T)
@@ -408,6 +474,7 @@ hist(sup_B,probability = T)
 lines(density(X_B),col='red')
 lines(density(sup_B),col='blue')
 ```
+
 C'est magic !
 
 
