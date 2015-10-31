@@ -109,7 +109,7 @@ r<- function (x) exp(-0.5*((abs(x)-1)^2))
 c<-c()
 t0=proc.time()
 count<-0
-while(count<100000){ 
+while(count<10000){ 
 ech_ber<-(ceiling((runif(1)-1/2))-1/2)*2
 ech<--log(runif(1))*ech_ber
 if (runif(1)<r(ech)) {
@@ -120,6 +120,7 @@ proc.time()-t0
 hist(c,probability=T)
 curve(dnorm(x),add=T,col="red")
 lines(density(c),col="darkgreen")
+legend("topright",c("desité théprique","densité empirique"),col=c("red","darkgreen"),lty=c(1,1))
 ```
 
 Ils coincident parfaitement.
@@ -136,6 +137,7 @@ N2<-c(r*cos(theta),r*sin(theta))
 hist(N2,probability=T)
 curve(dnorm(x),add=T,col="red")
 lines(density(N2),col="darkgreen")
+legend("topright",c("desité théprique","densité empirique"),col=c("red","darkgreen"),lty=c(1,1))
 proc.time()-t0
 ```
 
@@ -216,7 +218,7 @@ Il coincide parfaitement !
 
 ```{r}
 library(rgl)
-x<-seq(0.1,0.99,0.01)
+x<-seq(0.01,1,0.01)
 y<-x
 ```
 
@@ -280,7 +282,7 @@ très joli!
 p=1/2
 library(mvtnorm)
 library(rgl)
-x<-seq(0.1,0.99,0.01)
+x<-seq(0.01,1,0.01)
 y<-x
 c_gaussien<-function(x,y) {
   X<-rbind(x,y)
@@ -469,10 +471,12 @@ par(mfrow=c(1,2))
 hist(X_B,probability = T)
 lines(density(X_B),col='red')
 lines(density(sup_B),col='blue')
+legend("topright",c("X_B","sup_B"),col=c("red","blue"),lty=c(1,1))
 
 hist(sup_B,probability = T)
 lines(density(X_B),col='red')
 lines(density(sup_B),col='blue')
+legend("topright",c("X_B","sup_B"),col=c("red","blue"),lty=c(1,1))
 ```
 
 C'est magic !
