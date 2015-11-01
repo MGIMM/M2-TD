@@ -1,0 +1,561 @@
+---
+title: "Monte_Carlo_TD3"
+author: "Qiming"
+date: "30 October 2015"
+output: html_document
+---
+#1.Estimation d'événement rare.
+
+##1.1
+```{r}
+p<-1-pnorm(6)
+p
+```
+
+##1.2
+```{r}
+n<-10^5
+ech<-rnorm(n)
+In_bar<-sum(ech>6)
+In_bar
+```
+
+On peut voir que lorsque $n=10^5$ qui est vraiement grand, l'estimation $\bar{I_n}$ est 0.
+
+##1.3
+
+la densité de Y : $f_Y(x)=\mathrm{e}^{-(x-6)} \mathbb{1}_{x \geq 6}$
+
+On va représenter une évolution de l'estimation de p par rapport à n.
+
+```{r}
+n=1000
+alpha=0.05
+q=qnorm(1-alpha/2)
+y=6+rexp(n)#On simule l'échantillonnage préférentielle (Yi)
+w=exp(y-6-y^2/2)/sqrt(2*pi)
+p_tilde=cumsum(w)/(1:n)
+sd=sqrt(cumsum(w^2)/(1:n)-p_tilde^2)
+r=q*sd/sqrt((1:n))
+p_tilde_min=p_tilde-r
+p_tilde_max=p_tilde+r
+plot((1:n),p_tilde,type="l",ylim = c(0,2.0e-9),main = "Estimation de p", xlab = "n")
+lines((1:n),p_tilde_min,type="l",lty=2,col="blue")
+lines((1:n),p_tilde_max,type="l",lty=2,col="blue")
+abline(h=1-pnorm(6),col="red")#la valeur vraie.
+legend("topright",c("IC 95%","p_tilde","vrai p"),col = c("blue","black","red"),lty = c(2,1,1))
+```
+
+#Here comes trouble
+
+##2.1
+
+C'est facil à calculer $p = 0.001$.
+
+##2.2
+
+Monte-Carlo standard. On simule loi de pareto par la méthode d'inversion.
+
+```{r}
+p<-0.001
+n<-1000
+X<-((1-runif(n))^(-1/3)>10)
+p_tilde_sd<-cumsum(X)/(1:n)
+plot((1:n),p_tilde_sd,type = "l")
+```
+
+On peut voir que la méthode standard ne marche pas très bien.
+
+##2.3
+
+```{r}
+n<-10000
+alpha=0.05
+q=qnorm(1-alpha/2)
+y<-10+rexp(n)
+w<-exp(y-10)*3*y^(-4)*(y>=1)
+p_tilde=cumsum(w)/(1:n)
+sd=sqrt(cumsum(w^2)/(1:n)-p_tilde^2)
+r=q*sd/sqrt((1:n))
+p_tilde_min=p_tilde-r
+p_tilde_max=p_tilde+r
+plot((1:n),p_tilde,type="l",ylim = c(0.0005,0.0015), main = "Estimation de p", xlab = "n")
+lines((1:n),p_tilde_min,type="l",lty=2,col="blue")
+lines((1:n),p_tilde_max,type="l",lty=2,col="blue")
+abline(h=0.001,col="red")#la valeur vraie.
+legend("topright",c("IC 95%","p_tilde","vrai p"),col = c("blue","black","red"),lty = c(2,1,1))
+```
+
+On peut voir que ça marche pas très bien cette fois, parce que ici on n'a pas de $w \cdot y$ est carré intégrable.
+
+
+#3.Somme d'exponentielles et conditionnements
+
+##3.1
+
+D'après calcul,
+
+$$\begin{equation} p = 2\mathrm{e}^{-5} - \mathrm{e}^{-10} \end{equation}$$
+
+On l'estime par le monte-carlo classique.
+
+```{r}
+n<-10000
+p<-2*exp(-5)-exp(-10)
+#x<--log(runif(n))
+#y<--1/2*log(runif(n)/2)
+#ça marche pas très bien avec méthode d'inversion. pourquoi ?
+x<-rexp(n,1)
+y<-rexp(n,2)
+phi<-(x+y>5)
+p_tilde<-cumsum(phi)/(1:n)
+sd=sqrt(cumsum(phi^2)/(1:n)-p_tilde^2)
+r=q*sd/sqrt((1:n))
+p_tilde_min=p_tilde-r
+p_tilde_max=p_tilde+r
+plot((1:n),p_tilde,type="l",ylim=c(p-0.02,p+0.02), main = "Estimation de p", xlab = "n")
+lines((1:n),p_tilde_min,type="l",lty=2,col="blue")
+lines((1:n),p_tilde_max,type="l",lty=2,col="blue")
+abline(h=p,col="red")#la valeur vraie.
+legend("topright",c("IC 95%","p_tilde","vrai p"),col = c("blue","black","red"),lty = c(2,1,1))
+```
+
+Pour la variance.
+
+```{r}
+plot((1:n),sd^2,type="l",col="darkred",main = "Représentation de la Variance")
+```
+
+##3.2
+
+S sachant Y suit une loi de densité $f_X(x) = \mathrm{e}^{-(x-y)}$
+
+$\mathbb{E} [S] = \mathbb{E} [X] + Y$
+
+```{r}
+phi_prime<-(y<5)*exp(y-5)+(y>5)
+p_tilde_cond<-(cumsum(phi_prime))/(1:n)
+sd_cond=sqrt(cumsum(phi_prime^2)/(1:n)-p_tilde_cond^2)
+r_cond=q*sd_cond/sqrt((1:n))
+p_tilde_min_cond=p_tilde_cond-r_cond
+p_tilde_max_cond=p_tilde_cond+r_cond
+plot((1:n),p_tilde,type="l",ylim=c(p-0.02,p+0.02), main = "Estimation de p", xlab = "n")
+lines((1:n),p_tilde_min,type="l",lty=2,col="blue")
+lines((1:n),p_tilde_max,type="l",lty=2,col="blue")
+abline(h=p,col="red")#la valeur vraie.
+legend("topright",c("IC 95%","p_tilde","vrai p","IC 95% cond","p_tilde_cond"),col = c("blue","black","red","green","darkblue"),lty = c(2,1,1))
+lines((1:n),p_tilde_cond,type="l",col="darkblue")
+lines((1:n),p_tilde_min_cond,type="l",lty=3,col="green")
+lines((1:n),p_tilde_max_cond,type="l",lty=3,col="green")
+```
+
+C'est clair que la méthode avec conditionnement est bcp plus efficace que la méthode std au sens de la variance.
+
+##3.3
+
+Puisque X et Y sont indépendantes, la densité de S se donne par la convolution de densité de X et Y :
+
+$$f_S(x) = 2(e^{-s}-e^{-2s}) \cdot \mathbb{1}_{s \geq 0}$$
+
+#4.Vecteur Gaussien et exponential tilting.
+
+##4.1 Monte-Carlo classique
+
+```{r}
+library(MASS)
+n=10000
+alpha=0.05
+q=qnorm(1-alpha/2)
+gamma <- matrix(c(4,-1,-1,4),nrow = 2)
+X=mvrnorm(n,rep(0,2),gamma)
+x<-X[,1]
+y<-X[,2]
+a<-c(1,3,10)
+phi<-list()
+p_tilde<-list()
+sd<-list()
+r<-list()
+p_tilde_min<-list()
+p_tilde_max<-list()
+par(mfrow=c(1,3))
+for (i in (1:3)){
+  phi[[i]]<-as.numeric(x>=a[i])*as.numeric(y>=a[i])
+  p_tilde[[i]]<-cumsum(phi[[i]])/(1:n)
+  sd[[i]]<-sqrt(cumsum(phi[[i]]^2)/(1:n)-p_tilde[[i]]^2)
+  r[[i]]=q*sd[[i]]/sqrt((1:n))
+  p_tilde_min[[i]]=p_tilde[[i]]-r[[i]]
+  p_tilde_max[[i]]=p_tilde[[i]]+r[[i]]
+  plot((1:n),p_tilde[[i]],type="l", main = "Estimation de p", xlab = "n")
+  lines((1:n),p_tilde_min[[i]],type="l",lty=2,col="blue")
+  lines((1:n),p_tilde_max[[i]],type="l",lty=2,col="blue")
+  #legend("bottomright",c("IC 95%","p_tilde"),col = c("blue","black"),lty = c(2,1))
+  }
+```
+```{r,echo=F}
+par(mfrow=c(1,1))
+```
+
+Selon les trois plots, on peut voir que lorsque a est grand, c-à-d p est proche de 0, la Monte-Carlo standard ne marche pas bien.
+
+##4.2
+
+Maximiser la densité de N(0,gamma) s'agit de minimiser une ellipses $g(x,y)=2x^2 + xy + 2y^2$
+
+```{r}
+
+f=function(x,y){exp(-(2*x^2+x*y+2*y^2)/15)/(2*pi*sqrt(15))}
+g=function(x,y) 2*x^2+x*y+2*y^2
+x=seq(-12,12,by=0.1)
+y=x
+z=outer(x,y,f)
+#persp(x,y,z)
+
+contour(x,y,z,levels =c(seq(1e-9,2e-2,by=1e-3),1e-8,1e-7,1e-6,1e-5,1e-4),main = "Représentation d'Ellipses")
+lines(x,x,col="blue")
+lines(x,-x,col="blue")
+for (i in (1:3)){
+ abline(h=a[i],col="darkred",lty=2)
+ abline(v=a[i],col="darkred",lty=2) 
+ points(a[i],a[i],col="red")
+}
+
+```
+
+Donc, c'est facil à vérifier que g atteint son minimum à $(a,a)$.
+
+##4.3
+
+On considère une échantionnage préférée de la loi $\mathcal{N}((a,a),\Gamma)$.
+```{r}
+library(mvtnorm)
+a<-3
+n<-10000
+alpha=0.05
+q=qnorm(1-alpha/2)
+y<-rmvnorm(n,c(a,a),gamma)
+w<-dmvnorm(y,c(0,0),gamma)*(y[,1]>a)*(y[,2]>a)/dmvnorm(y,c(a,a),gamma)
+p_tilde<-cumsum(w)/(1:n)
+sd=sqrt(cumsum(w^2)/(1:n)-p_tilde^2)
+r=q*sd/sqrt((1:n))
+p_tilde_min=p_tilde-r
+p_tilde_max=p_tilde+r
+par(mfrow=c(1,2))
+plot((1:n),p_tilde,type="l", main = "Estimation de p pour a=3", xlab = "n")
+lines((1:n),p_tilde_min,type="l",lty=2,col="blue")
+lines((1:n),p_tilde_max,type="l",lty=2,col="blue")
+legend("topright",c("IC 95%","p_tilde"),col = c("blue","black"),lty = c(2,1))
+plot((1:n),sd^2,col="darkred",type = "l",main = "Représentation de la Variance")
+
+a<-10
+
+m0<-c(a,a)
+
+#on étudie l'ech pour les paramètres différents.
+y<-rmvnorm(n,m0,gamma)
+w<-dmvnorm(y,c(0,0),gamma)*(y[,1]>a)*(y[,2]>a)/dmvnorm(y,m0,gamma)
+p_tilde<-cumsum(w)/(1:n)
+sd=sqrt(cumsum(w^2)/(1:n)-p_tilde^2)
+r=q*sd/sqrt((1:n))
+p_tilde_min=p_tilde-r
+p_tilde_max=p_tilde+r
+par(mfrow=c(1,2))
+plot((1:n),p_tilde,type="l", main = "Estimation de p pour a=10", xlab = "n")
+lines((1:n),p_tilde_min,type="l",lty=2,col="blue")
+lines((1:n),p_tilde_max,type="l",lty=2,col="blue")
+legend("topright",c("IC 95%","p_tilde"),col = c("blue","black"),lty = c(2,1))
+
+plot((1:n),sd^2,col="darkred",type = "l",main = "Représentation de la Variance")
+```
+
+On peut voir que après l'utilisation de "Important sampling", l'Estimation pour a=10 devient plus stable.
+
+##4.4
+
+###cas1 : si $(x_0,y_0)$ est loin de $(a,a)$
+
+$(x_0,y_0) = (a+10,a+10)$
+
+$\delta = 1$
+
+```{r,echo=F}
+a<-10
+
+m0<-c(a+10,a+10)
+delta<-1
+#on étudie l'ech pour les paramètres différents.
+y<-rmvnorm(n,m0,gamma*delta)
+w<-dmvnorm(y,c(0,0),gamma*delta)*(y[,1]>a)*(y[,2]>a)/dmvnorm(y,m0,gamma)
+p_tilde<-cumsum(w)/(1:n)
+sd=sqrt(cumsum(w^2)/(1:n)-p_tilde^2)
+r=q*sd/sqrt((1:n))
+p_tilde_min=p_tilde-r
+p_tilde_max=p_tilde+r
+par(mfrow=c(1,2))
+plot((1:n),p_tilde,type="l", main = "Estimation de p pour a=10", xlab = "n")
+lines((1:n),p_tilde_min,type="l",lty=2,col="blue")
+lines((1:n),p_tilde_max,type="l",lty=2,col="blue")
+legend("topright",c("IC 95%","p_tilde"),col = c("blue","black"),lty = c(2,1))
+
+plot((1:n),sd^2,col="darkred",type = "l",main = "Représentation de la Variance")
+```
+
+L'estimation devient instable.
+
+###cas2 : si delta est grand.
+
+$(x_0,y_0) = (a+10,a+10)$
+
+$\delta = 10$
+
+```{r,echo=F}
+a<-10
+
+m0<-c(a,a)
+delta<-10
+#on étudie l'ech pour les paramètres différents.
+y<-rmvnorm(n,m0,gamma*delta)
+w<-dmvnorm(y,c(0,0),gamma*delta)*(y[,1]>a)*(y[,2]>a)/dmvnorm(y,m0,gamma)
+p_tilde<-cumsum(w)/(1:n)
+sd=sqrt(cumsum(w^2)/(1:n)-p_tilde^2)
+r=q*sd/sqrt((1:n))
+p_tilde_min=p_tilde-r
+p_tilde_max=p_tilde+r
+par(mfrow=c(1,2))
+plot((1:n),p_tilde,type="l", main = "Estimation de p pour a=10", xlab = "n")
+lines((1:n),p_tilde_min,type="l",lty=2,col="blue")
+lines((1:n),p_tilde_max,type="l",lty=2,col="blue")
+legend("topright",c("IC 95%","p_tilde"),col = c("blue","black"),lty = c(2,1))
+
+plot((1:n),sd^2,col="darkred",type = "l",main = "Représentation de la Variance")
+```
+
+La variance de l'estimation devient trop grande lorsque delta est grande.
+
+###cas3 : si delta est trop petit.
+
+$(x_0,y_0) = (a,a)$
+
+$\delta = 0.01$
+
+```{r,echo=F}
+a<-10
+
+m0<-c(a,a)
+delta<-0.01
+#on étudie l'ech pour les paramètres différents.
+y<-rmvnorm(n,m0,gamma*delta)
+w<-dmvnorm(y,c(0,0),gamma*delta)*(y[,1]>a)*(y[,2]>a)/dmvnorm(y,m0,gamma)
+p_tilde<-cumsum(w)/(1:n)
+sd=sqrt(cumsum(w^2)/(1:n)-p_tilde^2)
+r=q*sd/sqrt((1:n))
+p_tilde_min=p_tilde-r
+p_tilde_max=p_tilde+r
+par(mfrow=c(1,2))
+plot((1:n),p_tilde,type="l", main = "Estimation de p pour a=10", xlab = "n")
+lines((1:n),p_tilde_min,type="l",lty=2,col="blue")
+lines((1:n),p_tilde_max,type="l",lty=2,col="blue")
+legend("topright",c("IC 95%","p_tilde"),col = c("blue","black"),lty = c(2,1))
+
+plot((1:n),sd^2,col="darkred",type = "l",main = "Représentation de la Variance")
+```
+
+On peut voir que dans cette situation, l'estimation est impossible comme dans le cas monte-carlo standard.
+
+###cas4 : si delta est ajusté.
+
+$(x_0,y_0) = (a,a)$
+
+$\delta = 0.1$
+
+```{r,echo=F}
+a<-10
+
+m0<-c(a,a)
+delta<-0.1
+#on étudie l'ech pour les paramètres différents.
+y<-rmvnorm(n,m0,gamma*delta)
+w<-dmvnorm(y,c(0,0),gamma*delta)*(y[,1]>a)*(y[,2]>a)/dmvnorm(y,m0,gamma)
+p_tilde<-cumsum(w)/(1:n)
+sd=sqrt(cumsum(w^2)/(1:n)-p_tilde^2)
+r=q*sd/sqrt((1:n))
+p_tilde_min=p_tilde-r
+p_tilde_max=p_tilde+r
+par(mfrow=c(1,2))
+plot((1:n),p_tilde,type="l", main = "Estimation de p pour a=10", xlab = "n")
+lines((1:n),p_tilde_min,type="l",lty=2,col="blue")
+lines((1:n),p_tilde_max,type="l",lty=2,col="blue")
+legend("topright",c("IC 95%","p_tilde"),col = c("blue","black"),lty = c(2,1))
+
+plot((1:n),sd^2,col="darkred",type = "l",main = "Représentation de la Variance")
+```
+
+Dans ce cas, la variance est bcp plus petit que au cas où $\delta = 1$, et de plus, on n'a pas vu de phénomène dans le cas monte-carlo standard. Alors, c'est un bon choix pour l'estimer.
+
+```{r,echo=F}
+par(mfrow=c(1,1))
+```
+
+#5.Variables antithétiques.
+
+##5.1 & 5.2
+
+On va regarder $I = \int_0^1 \mathrm{e}^u \mathrm{d}u$ comme $\mathbb{E}[\varphi (X)]$ où X suit une loi uniforme sur (0,1) et $\varphi (x) = \mathrm{e}^x$.
+
+```{r}
+n<-1000
+x<-runif(n)
+phi<-exp(x)
+I<-cumsum(phi)/(1:n)
+var<-cumsum(phi^2)/(1:n)-I^2
+par(mfrow=c(1,2))
+plot((1:n),I,main = "Estimation classique de I",type = "l")
+plot((1:n),var,main = "Evaluation de la variance",col="darkred",type="l")
+```
+
+##5.3
+
+Par les calculs, on a théoriquement pour l'estiamteur de monte-carlo standard :
+
+$$ I = \mathrm{e} - 1$$
+
+$$\begin{equation} \sigma^2 = \mathbb{E}[\varphi(u)^2] - I^2 = \mathrm{e}^2-1-(\mathrm{e}-1)^2 \approx 3.43 \end{equation}$$
+
+et pour l'estimateur de variables antithétiques : 
+
+$$ \tilde{I} = I$$
+
+$$\begin{equation} \mathrm{s}^2 = \frac{1}{2}\mathrm{e}^2-(\mathrm{e}-1)^2 \approx 0.74 \end{equation} $$
+
+alors, on va prendre $\frac{3.43}{0.74 \times 2} \approx 2.32$ fois de temps pour atteindre la même précision par rappor à l'efficacité.
+
+##5.4
+
+$$ \mathbb{E}[X_c] = \mathbb{E}[\mathrm{e}^U + c(U-\frac{1}{2}) ] = I$$
+
+D'après calculs, on obtient :
+
+$$\mathbb{V}[\mathrm{e}^U] = \mathrm{e} - 1$$
+
+$$\mathbb{V}[U] = \frac{1}{12}$$
+
+$$\mathrm{Cov}[\mathrm{e}^U,c(U-\frac{1}{2})] = c$$
+
+alors,
+
+$$\mathbb{V}[X_c] = \frac{1}{12} c^2 + c +2(\mathrm{e}-1)$$
+
+$$c^{\star} = -6$$
+
+$$\mathbb{V}[X_{c^{\star}}] = 2(\mathrm{e}-1) - 3 \approx 0.44 < \mathrm{s}^2 \approx 0.74$$
+
+C'est-à-d, si on compare cet estimateur et l'estimateur de variables antithétiques, il est plus prècis par rapport à la variance, mais plus coûteux par rapport au temps pour calculs.
+
+
+#6.Preuve par couplage de l'inégarité de covariance de Tchebychev.
+
+##6.1
+
+Puisque$X \perp\!\!\perp X'$, On a :
+
+$$\mathbb{E}(\varphi(X)-\varphi(X')) = 0 \;\;et\;\; \mathbb{E}(\psi(X)-\psi(X')) = 0$$
+
+alors,
+
+$$\mathrm{Cov}(\varphi(X)-\varphi(X'),\psi(X)-\psi(X')) = \mathbb{E}[(\varphi(X)-\varphi(X'))(\psi(X)-\psi(X'))]$$
+
+de plus, comme $\varphi(\cdot)(resp. \psi(\cdot))$ est croissante(resp. décroissante), On a :
+
+$$(\varphi(X)-\varphi(X'))(\psi(X)-\psi(X')) \leq 0, \;\;\forall X,X' \in \mathbb{R}$$
+
+alors,
+
+$$\mathrm{Cov}(\varphi(X)-\varphi(X'),\psi(X)-\psi(X')) = \mathbb{E}[(\varphi(X)-\varphi(X'))(\psi(X)-\psi(X'))] \leq 0$$
+
+##6.2
+
+Puisque$X \perp\!\!\perp X'$, On a :
+
+$$\mathrm{Cov}((\varphi(X)-\varphi(X'))(\psi(X)-\psi(X'))) = \mathrm{Cov}(\phi(X),\psi(X))+\mathrm{Cov}(\phi(X'),\psi(X'))$$
+
+Or $X \sim X'$ :
+
+$$\mathrm{Cov}((\varphi(X)-\varphi(X'))(\psi(X)-\psi(X'))) = 2\mathrm{Cov}(\phi(X),\psi(X))$$
+
+##6.3
+
+Puisque $h(X) \sim X$,
+
+$$\mathbb{V}(\frac{\varphi(X)+\varphi(h(X))}{2}) = \frac{1}{2}\mathbb{V}(\varphi(X)) + \frac{1}{4}\mathrm{Cov}(\varphi(X),\varphi(h(X)))$$
+
+Or, $\varphi (\cdot)$ est monotone et $h(\cdot)$ est décroissante, alors, il y a une fonction croissante et une décroissante entre $\varphi(\cdot)$ et $\varphi(h(\cdot)).$
+Alors, d'après ce qu'on a déjà montré,
+
+$$\mathrm{Cov}(\varphi(X),\varphi(h(X))) \leq 0$$
+
+C'est-à-dire,
+
+$$\mathbb{V}(\frac{\varphi(X)+\varphi(h(X))}{2}) \leq \frac{1}{2}\mathbb{V}(\phi(X))$$
+
+##6.4
+
+Lorsque $X \sim \mathcal{N}(0,1)$, on a $X \sim -X$.
+
+Alors, on considère $\varphi(x) = \mathrm{e}^x$ et $h(x) = -x$.
+
+C'est clair que $\varphi$ est croissante et $h$ est décroissante.
+
+```{r}
+n<-10000
+X<-rnorm(n)
+I_std<-cumsum(exp(X))/(1:n)
+var_std<-cumsum(exp(2*X))/(1:n)-I_std^2
+
+I_adjusted<-cumsum((exp(X)+exp(-X))/2)/(1:n)
+var_adjusted<-cumsum( (   (exp(X)+exp(-X))/2 )^2  )/(1:n) - I_adjusted^2
+
+par(mfrow=c(1,2))
+
+plot((1:n),I_std,main = "Estimation Standard",type = "l")
+plot((1:n),var_std,main = "Variance Standard",col="darkred",type = "l")
+
+plot((1:n),I_adjusted,main = "Estimation Antithétique",type = "l")
+plot((1:n),var_adjusted, main = "Variance Ajustée",col="darkred",type = "l")
+
+par(mfrow=c(1,1))
+
+plot((1:n),var_std,main = "Comparaison des Variances",col="darkred",type = "l")
+lines((1:n),var_adjusted,col="darkgreen",type = "l")
+legend("topright",c("var_std","var_ajt"),col = c("darkred","darkgreen"),lty = c(1,1))
+```
+
+On peut voir que cette méthode est plus efficace au sens de la variance.
+
+##6.5
+
+On va comparaison la méthode d'antithétique et la méthode conditionnelle.
+
+```{r}
+n<-10000
+u<-runif(n)
+v<-runif(n)
+phi<-(-log(u)-0.5*log(v)+0.5>=5)
+psi<-(-log(1-u)-0.5*log(1-v)+0.5>=5)
+I_ant<-cumsum((phi+psi)/2)/(1:n)
+var_ant<-cumsum(((phi+psi)/2)^2)/(1:n)-I_ant^2
+par(mfrow=c(1,2))
+plot((1:n),I_ant,main = "Estimation Antithétique",type = "l")
+plot((1:n),var_ant, main = "Variance Antithétique",col="darkred",type = "l")
+
+x<-rexp(n,1)
+y<-rexp(n,2)
+phi_prime<-(y<5)*exp(y-5)+(y>5)
+I_cond<-(cumsum(phi_prime))/(1:n)
+var_cond<-cumsum(phi_prime^2)/(1:n)-I_cond^2
+plot((1:n),I_cond,main = "Estimation Conditionnelle",type = "l")
+plot((1:n),var_cond, main = "Variance Conditionnelle",col="darkred",type = "l")
+par(mfrow=c(1,1))
+plot((1:n),var_ant, main = "Comparaison des Variances",col="darkred",type = "l")
+lines((1:n),var_cond,col="darkgreen",type = "l")
+```
+
+On peut voir que la méthode d'antithétique est encore mieux que la méthode conditionnelle par rapport à la variance.
