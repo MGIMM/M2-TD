@@ -183,9 +183,9 @@ On peut voir que l'estimateur de quasi-monte-carlo converge plus vite que l'esti
 
 #3.Bayes in memoriam(1763)
 
-D'après le calcul :
-
 #3.1
+
+D'après le calcul :
 
 $$\pi(\theta|x) \sim \mathcal{Beta}(x+1,N-x+1)$$
 
@@ -218,6 +218,45 @@ legend("topright",c("var_mc","var_vrai"),col = c("black","red"),lty = c(1,1))
 ```
 
 #3.3
+
+Comparaison de la variance priori et la variance postériori de $\theta$ :
+
+$$\mathrm{Var}[\theta] = \frac{1}{3}$$
+
+$$\mathrm{Var}[\theta|x]  = \frac{(x+1)(N-x+1)}{(N+2)^2(N+3)}$$
+
+$$\frac{(x+1)(N-x+1)}{(N+2)^2(N+3)} \leq \frac{\frac{1}{2}(x+1+N-x+1)^2}{(N+2)^2(N+3)} = \frac{1}{2(N+3)} \leq \frac{1}{3}$$
+
+Alors, dans ce cas, la variance a postériori est plus petite que la variance a priori.
+
+#3.4
+
+Pour le MLE, on maximise $f(x|\theta)$, et $\hat{\theta}^{EMV} = \frac{x}{N}$.
+
+pour l'estimateur de Bayes, $\hat{\theta}^{B} = \mathbb{E}[\theta|x] = \frac{x+1}{N+2}$.
+
+#3.5
+
+```{r}
+x=seq(0,1,by=0.01)
+plot(x,dbeta(x,5,5),type="l",main="Densités des lois de Beta",ylim=c(0,10))
+alpha<-(1:11)
+beta<-11-alpha
+for(i in alpha){
+  lines(x,dbeta(x,alpha[i],beta[i]),type="l")
+}
+```
+
+On peut voir sur le plot de desités de lois de Beta.
+
+Alors, on peut dire que le mode a posteriori est proche de MPL.
+
+#4. Bayes,Cauchy et Gauss.
+
+#4.1
+
+
+
 
 
 
