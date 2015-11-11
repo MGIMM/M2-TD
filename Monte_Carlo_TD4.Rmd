@@ -249,15 +249,134 @@ for(i in alpha){
 
 On peut voir sur le plot de desités de lois de Beta.
 
-Alors, on peut dire que le mode a posteriori est proche de MPL.
+Alors, on peut dire que le mode a posteriori est proche de MAP.
 
 #4. Bayes,Cauchy et Gauss.
 
 #4.1
 
+$$\pi(\theta) \sim f(x) = \frac{1}{\pi(1+\theta^2)}$$
+
+$$X_i|\theta \sim \mathcal{N}(\theta,1)$$
+
+Par la formule de Bayes :
+
+$$\pi(\theta|\mathbb{X}) = \frac{(2\pi)^{- \frac{n}{2} } \mathrm{e}^{-\frac{1}{2}\sum_{i=1}^{n}(X_i-\theta)^2} \frac{1}{\pi(1+\theta^2)}}     {\int_{\mathbb{R}} (2\pi)^{- \frac{n}{2} } \mathrm{e}^{-\frac{1}{2}\sum_{i=1}^{n}(X_i-\theta)^2} \frac{1}{\pi(1+\theta^2)}   \mathrm{d}\theta }$$
+
+#4.2
+
+```{r}
+library(mvtnorm)
+n=10000
+N=10
+theta_0=3
+gamma=diag(N)
+x=rmvnorm(n,mean=rep(theta_0,N), sigma = gamma)
+```
+
+#4.3
+
+$$\mathbb{E}[\theta|\mathbb{X}] = \int_{\mathbb{R}} \theta \pi(\theta|\mathbb{X}) \mathrm{d}\theta$$
+
+```{r}
+Y=tan(pi*(runif(n)-1/2))# On simule une loi de Cauchy par la méthode d'inversion.
+for (i in (1:N)) {
+  x[,i]=(x[,i]-Y)^2
+}
+
+f=(2*pi)^(-N/2)*exp(-1/2*apply(x,1,sum))
+F_mean=(cumsum(f*Y)/(1:n))/(cumsum(f)/(1:n))
+
+Y=tan(pi*(runif(n)-1/2))
+
+plot((1:n),F_mean,typ="l",col="darkblue",main="Estimation de Bayes(N=10)",ylim = c(0,4))
+abline(h=theta_0,col="red")
+legend("topright",c("BE","varie"),col = c("darkblue","red"),lty=c(1,1))
+```
 
 
+```{r,echo=F}
+n=10000
+N=2
+theta_0=3
+gamma=diag(N)
+x=rmvnorm(n,mean=rep(theta_0,N), sigma = gamma)
+Y=tan(pi*(runif(n)-1/2))# On simule une loi de Cauchy par la méthode d'inversion.
+for (i in (1:N)) {
+  x[,i]=(x[,i]-Y)^2
+}
+f=(2*pi)^(-N/2)*exp(-1/2*apply(x,1,sum))
+F_mean=(cumsum(f*Y)/(1:n))/(cumsum(f)/(1:n))
+
+Y=tan(pi*(runif(n)-1/2))
+
+plot((1:n),F_mean,typ="l",col="darkblue",main="Estimation de Bayes(N=2)",ylim = c(0,4))
+abline(h=theta_0,col="red")
+legend("topright",c("BE","varie"),col = c("darkblue","red"),lty=c(1,1))
+```
 
 
+```{r,echo=F}
+n=10000
+N=6
+theta_0=3
+gamma=diag(N)
+x=rmvnorm(n,mean=rep(theta_0,N), sigma = gamma)
+Y=tan(pi*(runif(n)-1/2))# On simule une loi de Cauchy par la méthode d'inversion.
+for (i in (1:N)) {
+  x[,i]=(x[,i]-Y)^2
+}
+f=(2*pi)^(-N/2)*exp(-1/2*apply(x,1,sum))
+F_mean=(cumsum(f*Y)/(1:n))/(cumsum(f)/(1:n))
 
+Y=tan(pi*(runif(n)-1/2))
+
+plot((1:n),F_mean,typ="l",col="darkblue",main="Estimation de Bayes(N=6)",ylim = c(0,4))
+abline(h=theta_0,col="red")
+legend("topright",c("BE","varie"),col = c("darkblue","red"),lty=c(1,1))
+```
+
+```{r,echo=F}
+n=10000
+N=12
+theta_0=3
+gamma=diag(N)
+x=rmvnorm(n,mean=rep(theta_0,N), sigma = gamma)
+Y=tan(pi*(runif(n)-1/2))# On simule une loi de Cauchy par la méthode d'inversion.
+for (i in (1:N)) {
+  x[,i]=(x[,i]-Y)^2
+}
+f=(2*pi)^(-N/2)*exp(-1/2*apply(x,1,sum))
+F_mean=(cumsum(f*Y)/(1:n))/(cumsum(f)/(1:n))
+
+Y=tan(pi*(runif(n)-1/2))
+
+plot((1:n),F_mean,typ="l",col="darkblue",main="Estimation de Bayes(N=12)",ylim = c(0,4))
+abline(h=theta_0,col="red")
+legend("topright",c("BE","varie"),col = c("darkblue","red"),lty=c(1,1))
+```
+
+```{r,echo=F}
+n=10000
+N=20
+theta_0=3
+gamma=diag(N)
+x=rmvnorm(n,mean=rep(theta_0,N), sigma = gamma)
+Y=tan(pi*(runif(n)-1/2))# On simule une loi de Cauchy par la méthode d'inversion.
+for (i in (1:N)) {
+  x[,i]=(x[,i]-Y)^2
+}
+f=(2*pi)^(-N/2)*exp(-1/2*apply(x,1,sum))
+F_mean=(cumsum(f*Y)/(1:n))/(cumsum(f)/(1:n))
+
+Y=tan(pi*(runif(n)-1/2))
+
+plot((1:n),F_mean,typ="l",col="darkblue",main="Estimation de Bayes(N=20)",ylim = c(0,4))
+abline(h=theta_0,col="red")
+legend("topright",c("BE","varie"),col = c("darkblue","red"),lty=c(1,1))
+```
+
+D'après les plots, on trouve lorsque N est plus en plus grand, l'estimation est plus en plus précise. C'est raisonnable parce que on a plus en plus des information a postériori de $\theta$.
+
+#4.4
 
