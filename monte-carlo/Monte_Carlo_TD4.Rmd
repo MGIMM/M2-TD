@@ -1,0 +1,382 @@
+---
+title: "Monte_Carlo_TD4"
+author: "Qiming"
+date: "3 November 2015"
+output: html_document
+---
+
+#Estimation (inefficace) de $\pi$
+##1.1 & 1.2
+```{r}
+n<-1000
+u<-runif(n)
+v<-runif(n)
+alpha=0.05
+q=qnorm(1-alpha/2)
+pi_tilde<-cumsum(u^2+v^2<=1)/(1:n)
+var_tilde<-cumsum(u^2+v^2<=1)/(1:n)-pi_tilde^2
+sd_tilde<-sqrt(var_tilde)
+r=q*sd_tilde/sqrt((1:n))
+p_min<-pi_tilde -r
+p_max<-pi_tilde +r
+plot((1:n),pi_tilde,type="l",main="Estimation de Pi/4")
+lines((1:n),p_min,type="l",lty=2,col="blue")
+lines((1:n),p_max,type="l",lty=2,col="blue")
+abline(h=pi/4,col="red")
+legend("topright",c("IC 95%","pi/4_tilde","vrai pi/4"),col = c("blue","black","red"),lty = c(2,1,1))
+```
+
+#1.3
+
+Ici, on ne peut plus utiliser l'IC asymptotique. On veut chercher un IC déterminé de niveau 95%. On considère l'inégalité de Hoeffding.
+
+$$\mathrm{P}(| \bar{X_n} -\mathbb{E}[X]|>0.01\times\frac{\pi}{4}) \leq 2\mathrm{e}^{-2nt^2} \leq 0.95$$
+
+On obtient : $$n \geq -\frac{1}{2}\mathrm{log}(0.025)\times \frac{10000}{\pi^2} \simeq 29901$$
+
+```{r}
+c<-0
+for(i in 1:1000){
+n<-29901
+u<-runif(n)
+v<-runif(n)
+pi_tilde<-cumsum(u^2+v^2<=1)/(1:n)
+c=c+(abs(pi_tilde[n]-pi/4)/(pi/4)>0.01)
+}
+c
+c/1000
+```
+
+Ça marche bien !
+
+
+
+#2 méthode numériques, monte-carlo et quasi-monte-carlo
+
+##2.1
+D'après calcul, on a : 
+
+\[ I(k,d) =
+  \begin{cases}
+    0       & \quad \text{si } k \text{ pair}\\
+    1  & \quad \text{if } k \text{ impair}\\
+  \end{cases}
+\]
+
+#2.2
+
+```{r}
+library(cubature)
+
+f<- function (x,k) prod(0.5*k*pi*sin(pi*k*x))
+phi_k1 = function (x) f(x,1)
+adaptIntegrate(phi_k1,rep(0,2),rep(1,2),maxEval=1000)
+phi_k2 = function (x) f(x,2)
+adaptIntegrate(phi_k2,rep(0,2),rep(1,2),maxEval=1000)
+```
+
+##2.3 Méthode monte-carlo classique
+
+D'après le calcul :
+
+$$\mathrm{Var}(\hat{I_n}) = \frac{\pi^{2d}}{8^d}-1 \simeq 7.17$$
+
+```{r}
+n<-10000
+phi_k1<-function (x) f(x,1)
+d<-10
+
+u<-runif(n)
+for (i in 1:d-1){
+  u<-rbind(u,runif(n))
+}
+
+p<-cumsum(apply(u,2,phi_k1))/(1:n)
+var<-cumsum(apply(u,2,phi_k1)^2)/(1:n) - p^2
+var_log<-var/(1:n) #c'est pour le log-log plot
+par(mfrow=c(1,2))
+plot((1:n),p,type="l",main="Estimation de f classique")
+plot(1:n,var,type="l",col="darkred",main="Evaluation de la variance")
+par(mfrow=c(1,1))
+plot(log(1:n),log(var_log),type="l",col="darkred",main="Evaluation de la variance(log-log)")
+lines(log(1:n),log(rep(7.17,n)/(1:n)),type="l",col="red")
+legend("topright",c("empirique","vrai"),col = c("darkred","red"),lty = c(1,1))
+```
+
+##2.4 Représentation de halton.
+
+```{r}
+library(randtoolbox)
+h<-halton(500,2)
+par(mfrow=c(1,2))
+plot(h,col="red",main="halton")
+plot(runif(500),runif(500),col="blue",main="uniform")
+```
+
+##2.5
+
+```{r}
+n<-10000
+phi_k1<-function (x) f(x,1)
+d<-2
+u_halton=t(halton(n,d))
+u_unif<-runif(n)
+if(d>1){
+for (i in 1:d-1){
+  u_unif<-rbind(u_unif,runif(n))
+}}
+
+
+p<-cumsum(apply(u_unif,2,phi_k1))/(1:n)
+p_quasi<-cumsum(apply(u_halton,2,phi_k1))/(1:n)
+par(mfrow=c(1,1))
+plot((1:n),p,type="l",col="blue",ylim=c(0,2),main="Estimation de f classique(d=2)")
+abline(h=1,col="red")
+lines((1:n),p_quasi,type="l",col="darkgreen")
+legend("topright",c("p_classique","p_quasi","vrai"),col = c("blue","darkgreen","red"),lty = c(1,1))
+
+```
+```{r,echo=F}
+n<-10000
+phi_k1<-function (x) f(x,1)
+d<-5
+u_halton=t(halton(n,d))
+u_unif<-runif(n)
+if(d>1){
+for (i in 1:d-1){
+  u_unif<-rbind(u_unif,runif(n))
+}}
+
+
+p<-cumsum(apply(u_unif,2,phi_k1))/(1:n)
+p_quasi<-cumsum(apply(u_halton,2,phi_k1))/(1:n)
+par(mfrow=c(1,1))
+plot((1:n),p,type="l",col="blue",ylim=c(0,2),main="Estimation de f classique(d=5)")
+abline(h=1,col="red")
+lines((1:n),p_quasi,type="l",col="darkgreen")
+legend("topright",c("p_classique","p_quasi","vrai"),col = c("blue","darkgreen","red"),lty = c(1,1))
+
+```
+```{r,echo=F}
+n<-10000
+phi_k1<-function (x) f(x,1)
+d<-10
+u_halton=t(halton(n,d))
+u_unif<-runif(n)
+if(d>1){
+for (i in 1:d-1){
+  u_unif<-rbind(u_unif,runif(n))
+}}
+
+
+p<-cumsum(apply(u_unif,2,phi_k1))/(1:n)
+p_quasi<-cumsum(apply(u_halton,2,phi_k1))/(1:n)
+par(mfrow=c(1,1))
+plot((1:n),p,type="l",col="blue",ylim=c(0,2),main="Estimation de f classique(d=10)")
+abline(h=1,col="red")
+lines((1:n),p_quasi,type="l",col="darkgreen")
+legend("topright",c("p_classique","p_quasi","vrai"),col = c("blue","darkgreen","red"),lty = c(1,1))
+
+```
+
+On peut voir que l'estimateur de quasi-monte-carlo converge plus vite que l'estimateur monte-carlo classique.
+
+#3.Bayes in memoriam(1763)
+
+#3.1
+
+D'après le calcul :
+
+$$\pi(\theta|x) \sim \mathcal{Beta}(x+1,N-x+1)$$
+
+$$\mathbb{E}[\theta|x] = \frac{\alpha}{\alpha+\beta} =\frac{x+1}{N+2}$$
+
+$$\mathrm{Var}[\theta|x] = \frac{\alpha\beta}{(\alpha+\beta)^2(\alpha+\beta+1)} = \frac{(x+1)(N-x+1)}{(N+2)^2(N+3)}$$
+
+L'estimateur de Bayes pour la perte quadradique est la moyenne postériori, et le risque sont la variance postériori.
+
+#3.2
+
+```{r}
+n=1000
+x=7
+N=10
+mean=(x+1)/(N+2)
+var=(x+1)*(N-x+1)/((N+2)^2*(N+3))
+u<-runif(n)
+f<-(gamma(N+1)/(gamma(N-x+1)*gamma(x+1)))*u^x*(1-u)^(N-x)
+F_mean<-(cumsum(f*u)/(1:n))/(cumsum(f)/(1:n))
+F_var<-(cumsum(f*u*u)/(1:n))/(cumsum(f)/(1:n))-F_mean^2
+plot((1:n),F_mean,main = "Mean M-C",type="l")
+abline(h=mean,col="red")
+legend("topright",c("mean_mc","mean_vrai"),col = c("black","red"),lty = c(1,1))
+
+plot((1:n),F_var,main = "Var M-C",type="l")
+abline(h=var,col="red")
+legend("topright",c("var_mc","var_vrai"),col = c("black","red"),lty = c(1,1))
+
+```
+
+#3.3
+
+Comparaison de la variance priori et la variance postériori de $\theta$ :
+
+$$\mathrm{Var}[\theta] = \frac{1}{3}$$
+
+$$\mathrm{Var}[\theta|x]  = \frac{(x+1)(N-x+1)}{(N+2)^2(N+3)}$$
+
+$$\frac{(x+1)(N-x+1)}{(N+2)^2(N+3)} \leq \frac{\frac{1}{2}(x+1+N-x+1)^2}{(N+2)^2(N+3)} = \frac{1}{2(N+3)} \leq \frac{1}{3}$$
+
+Alors, dans ce cas, la variance a postériori est plus petite que la variance a priori.
+
+#3.4
+
+Pour le MLE, on maximise $f(x|\theta)$, et $\hat{\theta}^{EMV} = \frac{x}{N}$.
+
+pour l'estimateur de Bayes, $\hat{\theta}^{B} = \mathbb{E}[\theta|x] = \frac{x+1}{N+2}$.
+
+#3.5
+
+```{r}
+x=seq(0,1,by=0.01)
+plot(x,dbeta(x,5,5),type="l",main="Densités des lois de Beta",ylim=c(0,10))
+alpha<-(1:11)
+beta<-11-alpha
+for(i in alpha){
+  lines(x,dbeta(x,alpha[i],beta[i]),type="l")
+}
+```
+
+On peut voir sur le plot de desités de lois de Beta.
+
+Alors, on peut dire que le mode a posteriori est proche de MAP.
+
+#4. Bayes,Cauchy et Gauss.
+
+#4.1
+
+$$\pi(\theta) \sim f(x) = \frac{1}{\pi(1+\theta^2)}$$
+
+$$X_i|\theta \sim \mathcal{N}(\theta,1)$$
+
+Par la formule de Bayes :
+
+$$\pi(\theta|\mathbb{X}) = \frac{(2\pi)^{- \frac{n}{2} } \mathrm{e}^{-\frac{1}{2}\sum_{i=1}^{n}(X_i-\theta)^2} \frac{1}{\pi(1+\theta^2)}}     {\int_{\mathbb{R}} (2\pi)^{- \frac{n}{2} } \mathrm{e}^{-\frac{1}{2}\sum_{i=1}^{n}(X_i-\theta)^2} \frac{1}{\pi(1+\theta^2)}   \mathrm{d}\theta }$$
+
+#4.2
+
+```{r}
+library(mvtnorm)
+n=10000
+N=10
+theta_0=3
+gamma=diag(N)
+x=rmvnorm(n,mean=rep(theta_0,N), sigma = gamma)
+```
+
+#4.3
+
+$$\mathbb{E}[\theta|\mathbb{X}] = \int_{\mathbb{R}} \theta \pi(\theta|\mathbb{X}) \mathrm{d}\theta$$
+
+```{r}
+Y=tan(pi*(runif(n)-1/2))# On simule une loi de Cauchy par la méthode d'inversion.
+for (i in (1:N)) {
+  x[,i]=(x[,i]-Y)^2
+}
+
+f=(2*pi)^(-N/2)*exp(-1/2*apply(x,1,sum))
+F_mean=(cumsum(f*Y)/(1:n))/(cumsum(f)/(1:n))
+
+Y=tan(pi*(runif(n)-1/2))
+
+plot((1:n),F_mean,typ="l",col="darkblue",main="Estimation de Bayes(N=10)",ylim = c(0,4))
+abline(h=theta_0,col="red")
+legend("topright",c("BE","varie"),col = c("darkblue","red"),lty=c(1,1))
+```
+
+
+```{r,echo=F}
+n=10000
+N=2
+theta_0=3
+gamma=diag(N)
+x=rmvnorm(n,mean=rep(theta_0,N), sigma = gamma)
+Y=tan(pi*(runif(n)-1/2))# On simule une loi de Cauchy par la méthode d'inversion.
+for (i in (1:N)) {
+  x[,i]=(x[,i]-Y)^2
+}
+f=(2*pi)^(-N/2)*exp(-1/2*apply(x,1,sum))
+F_mean=(cumsum(f*Y)/(1:n))/(cumsum(f)/(1:n))
+
+Y=tan(pi*(runif(n)-1/2))
+
+plot((1:n),F_mean,typ="l",col="darkblue",main="Estimation de Bayes(N=2)",ylim = c(0,4))
+abline(h=theta_0,col="red")
+legend("topright",c("BE","varie"),col = c("darkblue","red"),lty=c(1,1))
+```
+
+
+```{r,echo=F}
+n=10000
+N=6
+theta_0=3
+gamma=diag(N)
+x=rmvnorm(n,mean=rep(theta_0,N), sigma = gamma)
+Y=tan(pi*(runif(n)-1/2))# On simule une loi de Cauchy par la méthode d'inversion.
+for (i in (1:N)) {
+  x[,i]=(x[,i]-Y)^2
+}
+f=(2*pi)^(-N/2)*exp(-1/2*apply(x,1,sum))
+F_mean=(cumsum(f*Y)/(1:n))/(cumsum(f)/(1:n))
+
+Y=tan(pi*(runif(n)-1/2))
+
+plot((1:n),F_mean,typ="l",col="darkblue",main="Estimation de Bayes(N=6)",ylim = c(0,4))
+abline(h=theta_0,col="red")
+legend("topright",c("BE","varie"),col = c("darkblue","red"),lty=c(1,1))
+```
+
+```{r,echo=F}
+n=10000
+N=12
+theta_0=3
+gamma=diag(N)
+x=rmvnorm(n,mean=rep(theta_0,N), sigma = gamma)
+Y=tan(pi*(runif(n)-1/2))# On simule une loi de Cauchy par la méthode d'inversion.
+for (i in (1:N)) {
+  x[,i]=(x[,i]-Y)^2
+}
+f=(2*pi)^(-N/2)*exp(-1/2*apply(x,1,sum))
+F_mean=(cumsum(f*Y)/(1:n))/(cumsum(f)/(1:n))
+
+Y=tan(pi*(runif(n)-1/2))
+
+plot((1:n),F_mean,typ="l",col="darkblue",main="Estimation de Bayes(N=12)",ylim = c(0,4))
+abline(h=theta_0,col="red")
+legend("topright",c("BE","varie"),col = c("darkblue","red"),lty=c(1,1))
+```
+
+```{r,echo=F}
+n=10000
+N=20
+theta_0=3
+gamma=diag(N)
+x=rmvnorm(n,mean=rep(theta_0,N), sigma = gamma)
+Y=tan(pi*(runif(n)-1/2))# On simule une loi de Cauchy par la méthode d'inversion.
+for (i in (1:N)) {
+  x[,i]=(x[,i]-Y)^2
+}
+f=(2*pi)^(-N/2)*exp(-1/2*apply(x,1,sum))
+F_mean=(cumsum(f*Y)/(1:n))/(cumsum(f)/(1:n))
+
+Y=tan(pi*(runif(n)-1/2))
+
+plot((1:n),F_mean,typ="l",col="darkblue",main="Estimation de Bayes(N=20)",ylim = c(0,4))
+abline(h=theta_0,col="red")
+legend("topright",c("BE","varie"),col = c("darkblue","red"),lty=c(1,1))
+```
+
+D'après les plots, on trouve lorsque N est plus en plus grand, l'estimation est plus en plus précise. C'est raisonnable parce que on a plus en plus des information a postériori de $\theta$.
+
+#4.4
+
